@@ -298,7 +298,7 @@ int anal_infiles = 1;
 int sloom = 0;
 int sloombatch = 0;
 
-const char* cdp_version = "8.0.1";
+const char* cdp_version = "8.0.2";    //RWD 2026, fixes for mode 8, 22
 
 /* CDP LIBRARY FUNCTIONS TRANSFERRED HERE */
 
@@ -650,6 +650,9 @@ int main(int argc,char *argv[])
             fflush(stdout);
             return(FAILED);
         }
+        //RWD 2026 where are these alloced?
+        for (n = 0; n < IARRAYCNT; n++)
+            dz->iparray[n] = NULL;
     }
     if((dz->parray = (double **)malloc(TOT_DBLARRAYCNT * sizeof(double *)))==NULL) {
         fprintf(stdout,"ERROR: INSUFFICIENT MEMORY to store Filter Data.\n");
@@ -802,7 +805,7 @@ int main(int argc,char *argv[])
         return(FAILED);
     }
     exit_status = print_messages_and_close_sndfiles(FINISHED,is_launched,dz);       // CDP LIB
-    free(dz);
+    superfree(dz);  //RWD 2026 TODO: should use superfree func for all contained allocs
     return(SUCCEEDED);
 }
 
@@ -946,7 +949,7 @@ int setup_and_init_input_brktable_constants(dataptr dz,int brkcnt)
 }
 
 /********************** SETUP_PARAMETER_STORAGE_AND_CONSTANTS ********************/
-/* RWD mallo changed to calloc; helps debug verison run as release! */
+/* RWD malloc changed to calloc; helps debug version run as release! */
 
 int setup_parameter_storage_and_constants(int storage_cnt,dataptr dz)
 {
@@ -4408,7 +4411,7 @@ int specfnu_preprocess(dataptr dz)
                 return(MEMORY_ERROR);
             }
         }
-        if((dz->iparray[FCNT] = (int *)malloc(5 * sizeof(int)))==NULL) {
+        if((dz->iparray[FCNT] = (int *) calloc(5, sizeof(int)))==NULL) {        //RWD 2026 was malloc 
             sprintf(errstr,"INSUFFICIENT MEMORY to store Intermediate dformant array data counts.\n");
             return(MEMORY_ERROR);
         }
@@ -4564,7 +4567,8 @@ int initialise_peakstore(dataptr dz)
         sprintf(errstr,"INSUFFICIENT MEMORY for store of differences between window peaks and troughs.\n");
         return(MEMORY_ERROR);
     }
-    if((dz->iparray[PEAKPOS] = (int *)malloc(dz->wlength * PKBLOK * sizeof(int)))==NULL) {
+   // if((dz->iparray[PEAKPOS] = (int *)malloc(dz->wlength * PKBLOK * sizeof(int)))==NULL) {
+    if ((dz->iparray[PEAKPOS] = (int*)calloc((dz->wlength) * PKBLOK, sizeof(int))) == NULL) { //RWD 2026
         sprintf(errstr,"INSUFFICIENT MEMORY for store of locations  of peaks and troughs(2).\n");
         return(MEMORY_ERROR);
     }
@@ -5828,7 +5832,7 @@ int equivalent_pitches(double frq1, double frq2, dataptr dz)
 
 int formants_move(int inner_lpcnt,dataptr dz)
 {
-    int exit_status, truecnt, fno, paramno = 0, lotrofchan = 0, peakchan = 0, hitrofchan = 0, cc, vc, top_hno;
+    int exit_status, truecnt, fno =0, paramno = 0, lotrofchan = 0, peakchan = 0, hitrofchan = 0, cc, vc, top_hno;
     float lotrofamp = 0.0, peakamp = 0.0, hitrofamp = 0.0, the_fundamental = 0.0, frq;
     double frqoffset, pre_amptotal = 0.0, post_amptotal = 0.0;
     float *peaktrof = dz->fptr[PKTROF];
@@ -6026,7 +6030,7 @@ int concatenate_moved_formants(dataptr dz)
         frq = dz->flbufptr[0][FREQ];                                    //  For the frq at this flbufptr channel
         maxamp = -HUGE;
         for(fmnt = 1; fmnt <= 4; fmnt++) {                              //  Find the largest formant env value in the 4 formant arrays
-            getspecenv3amp(frq,&amp,spec3pchs[fmnt],spec3amps[fmnt],truecnt[fmnt],dz);
+             getspecenv3amp(frq,&amp,spec3pchs[fmnt],spec3amps[fmnt],truecnt[fmnt],dz);
             maxamp = max(amp,maxamp);
         }
         spec3_amp[cc] = (float)maxamp;
@@ -6410,7 +6414,7 @@ int specpitch(int inner_lpcnt,double *target, dataptr dz)
         *target = (newfrq + *target)/2.0;           //  target pitch is a running average
         dz->pitches[dz->total_windows] = (float)thepitch;
     } else
-        dz->pitches[dz->total_windows] = (float)NOT_PITCH;
+        dz->pitches[dz->total_windows] = (float)NOT_PITCH;     
     if((exit_status = smooth_spurious_octave_leaps(dz->total_windows,minamp,dz))<0)
         return(exit_status);
     return FINISHED;
@@ -8037,7 +8041,7 @@ int suppress_harmonics(dataptr dz)
     case(F_SQUEEZE):if(dz->vflag[SQZ_KHM])      suppress_h = 1; break;
     case(F_ROTATE): if(dz->vflag[ROTATE_KHM])   suppress_h = 1; break;
     }
-    if(suppress_h && dz->fptr[HMNICBOUNDS] == NULL) {
+    if(/* suppress_h && */ dz->fptr[HMNICBOUNDS] == NULL) {                   //RWD 2026: why the test?
         if((dz->fptr[HMNICBOUNDS] = (float *)malloc(10 * sizeof(float)))==NULL) {
             sprintf(errstr,"INSUFFICIENT MEMORY to store harmonic peak boundaries.\n");
             return(MEMORY_ERROR);
@@ -8547,7 +8551,7 @@ int formants_recolor(int inner_lpcnt,double *phase,int *up,int arp_param,double 
 
 /*************************  ARPEGGIATE *************************
  *
- *  Arpeggaite runs a small, inverted cosin, window over the first 16 harmonics,
+ *  Arpeggiate runs a small, inverted cosin, window over the first 16 harmonics,
  *  recycling baclk to harmonic 1, qwhen it overruns the top of this range.
  *
  *  So, if the input phase is in range 0 to 1, the position within this ARPEG_RANGE window is in range 0 to 7 (inclusive)
