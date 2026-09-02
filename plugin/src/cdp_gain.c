@@ -430,6 +430,8 @@ static clap_plugin_t *gain_create(const clap_host_t *host) {
 
 extern const clap_plugin_descriptor_t s_blur_desc;
 extern clap_plugin_t *blur_create(const clap_host_t *host);
+extern const clap_plugin_descriptor_t s_distort_desc;
+extern clap_plugin_t *distort_create(const clap_host_t *host);
 
 static struct {
    const clap_plugin_descriptor_t *desc;
@@ -437,6 +439,7 @@ static struct {
 } s_plugins[] = {
    {.desc = &s_gain_desc, .create = gain_create},
    {.desc = &s_blur_desc, .create = blur_create},
+   {.desc = &s_distort_desc, .create = distort_create},
 };
 
 static uint32_t plugin_factory_get_plugin_count(const clap_plugin_factory_t *factory) {
