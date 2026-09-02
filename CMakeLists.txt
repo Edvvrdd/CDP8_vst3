@@ -263,6 +263,7 @@ endif()
 #add_compiler_flags(${LIBCDP_CFLAGS} TARGETS ${CDPLIB})
 
 add_subdirectory(dev)
+add_subdirectory(plugin)
 
 # # uninstall target
 # configure_file(
